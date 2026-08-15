@@ -1,13 +1,15 @@
 # Credit Card Transactions - Power BI Business Intelligence Solution
 
-> **Repository name:** `DSA3050-PowerBI-YourName-YourRegNo`  
-> Replace `YourName` and `YourRegNo` before publishing, and rename this folder/repository to match.
+> **Repository name:** `DSA3050-PowerBI-ANGELAMWANZIA-663887`  
 
 ## 1. Introduction
 
 This project develops an end-to-end Power BI solution for analysing credit card transaction activity. It moves from a raw, high-volume transaction CSV through Power Query cleaning, a star-schema data model, DAX calculations, and three interactive report pages. The report helps decision-makers understand spending performance, customer and merchant behaviour, and transactions requiring further fraud review.
 
 **Important scope note.** The supplied CSV contains **1,296,675 rows** and covers **1 January 2019 to 21 June 2020**. The Kaggle listing may describe a broader/original release with a different row count; the values in this report describe the exact file included with this submission.
+
+# PowerBI Dashboard Link
+- https://drive.google.com/drive/folders/1ywKrBtt-aImh2ip42iWVhdWl9xr7eyaS?usp=drive_link
 
 ## 2. Section A - Dataset selection and understanding
 
