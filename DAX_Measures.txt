@@ -1,0 +1,169 @@
+// Create all measures in a dedicated Measures table where possible.
+// Format currency measures as $#,##0.00; percentages as 0.00%; whole-number counts as #,##0.
+
+// LEVEL 1 - Core KPIs
+Total Transactions =
+COUNTROWS ( FactTransactions )
+
+Total Sales Amount =
+SUM ( FactTransactions[Amount] )
+
+Average Transaction Value =
+AVERAGE ( FactTransactions[Amount] )
+
+// LEVEL 2 - Business measures
+Total Customers =
+DISTINCTCOUNT ( FactTransactions[CustomerID] )
+
+Avg Transactions per Customer =
+DIVIDE ( [Total Transactions], [Total Customers], 0 )
+
+High-Value Transactions =
+CALCULATE (
+    [Total Transactions],
+    FactTransactions[Amount] > 100
+)
+
+High-Value Transaction Rate % =
+DIVIDE ( [High-Value Transactions], [Total Transactions], 0 )
+
+Fraud Transactions =
+CALCULATE (
+    [Total Transactions],
+    FactTransactions[IsFraud] = 1
+)
+
+Fraud Rate % =
+DIVIDE ( [Fraud Transactions], [Total Transactions], 0 )
+
+Fraud Amount =
+CALCULATE (
+    [Total Sales Amount],
+    FactTransactions[IsFraud] = 1
+)
+
+// LEVEL 3 - Advanced and time intelligence
+Total Sales LY =
+CALCULATE (
+    [Total Sales Amount],
+    SAMEPERIODLASTYEAR ( DimDate[Date] )
+)
+
+YoY Sales Growth % =
+DIVIDE (
+    [Total Sales Amount] - [Total Sales LY],
+    [Total Sales LY],
+    0
+)
+
+Total Sales MTD =
+TOTALMTD ( [Total Sales Amount], DimDate[Date] )
+
+Customer Rank =
+RANKX (
+    ALL ( DimCustomer[CustomerID] ),
+    [Total Sales Amount],
+    ,
+    DESC,
+    DENSE
+)
+
+Top 5 Customers Sales =
+CALCULATE (
+    [Total Sales Amount],
+    KEEPFILTERS (
+        TOPN (
+            5,
+            ALLSELECTED ( DimCustomer[CustomerID] ),
+            [Total Sales Amount], DESC,
+            DimCustomer[CustomerID], ASC
+        )
+    )
+)
+
+Daily Average Sales =
+AVERAGEX (
+    VALUES ( DimDate[Date] ),
+    [Total Sales Amount]
+)
+
+Daily Sales Standard Deviation =
+STDEVX.P (
+    VALUES ( DimDate[Date] ),
+    CALCULATE ( [Total Sales Amount] )
+)
+
+Upper Sales Control Limit =
+[Daily Average Sales] + ( 2 * [Daily Sales Standard Deviation] )
+
+Lower Sales Control Limit =
+MAX ( 0, [Daily Average Sales] - ( 2 * [Daily Sales Standard Deviation] ) )
+
+Customer Average Amount =
+CALCULATE (
+    AVERAGE ( FactTransactions[Amount] ),
+    ALLEXCEPT ( FactTransactions, FactTransactions[CustomerID] )
+)
+
+Customer Amount Standard Deviation =
+CALCULATE (
+    STDEVX.P ( FactTransactions, FactTransactions[Amount] ),
+    ALLEXCEPT ( FactTransactions, FactTransactions[CustomerID] )
+)
+
+Potential Fraud Flag =
+VAR TransactionAmount = SELECTEDVALUE ( FactTransactions[Amount] )
+VAR CustomerMean = [Customer Average Amount]
+VAR CustomerStdDev = [Customer Amount Standard Deviation]
+RETURN
+    IF (
+        NOT ISBLANK ( TransactionAmount )
+            && CustomerStdDev > 0
+            && TransactionAmount > CustomerMean + ( 3 * CustomerStdDev ),
+        1,
+        0
+    )
+
+Potential Fraud Transactions =
+SUMX (
+    FactTransactions,
+    VAR CustomerMean =
+        CALCULATE (
+            AVERAGE ( FactTransactions[Amount] ),
+            ALLEXCEPT ( FactTransactions, FactTransactions[CustomerID] )
+        )
+    VAR CustomerStdDev =
+        CALCULATE (
+            STDEVX.P ( FactTransactions, FactTransactions[Amount] ),
+            ALLEXCEPT ( FactTransactions, FactTransactions[CustomerID] )
+        )
+    RETURN
+        IF (
+            CustomerStdDev > 0
+                && FactTransactions[Amount] > CustomerMean + ( 3 * CustomerStdDev ),
+            1,
+            0
+        )
+)
+
+Potential Fraud Amount =
+SUMX (
+    FactTransactions,
+    VAR CustomerMean =
+        CALCULATE (
+            AVERAGE ( FactTransactions[Amount] ),
+            ALLEXCEPT ( FactTransactions, FactTransactions[CustomerID] )
+        )
+    VAR CustomerStdDev =
+        CALCULATE (
+            STDEVX.P ( FactTransactions, FactTransactions[Amount] ),
+            ALLEXCEPT ( FactTransactions, FactTransactions[CustomerID] )
+        )
+    RETURN
+        IF (
+            CustomerStdDev > 0
+                && FactTransactions[Amount] > CustomerMean + ( 3 * CustomerStdDev ),
+            FactTransactions[Amount],
+            0
+        )
+)
